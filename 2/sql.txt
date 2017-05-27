@@ -1,0 +1,251 @@
+/* source file_name */
+
+DROP DATABASE euro;
+
+CREATE DATABASE euro;
+
+use euro;
+
+CREATE TABLE `team`
+(
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `code` VARCHAR(255),
+  `name` VARCHAR(255),
+  `coach` VARCHAR(255),  
+  PRIMARY KEY (`id`)  
+);
+
+CREATE TABLE `game`
+(
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `match_date` VARCHAR(255),
+  `stadium` VARCHAR(255),
+  `team1` INT,
+  `team2` INT,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`team1`) 
+  REFERENCES `team`(`id`)
+    ON DELETE CASCADE,
+  FOREIGN KEY (`team2`) 
+  REFERENCES `team`(`id`)
+    ON DELETE CASCADE  
+);
+
+CREATE TABLE `goal`
+(
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `match_id` INT,
+  `team_id` INT,
+  `player` VARCHAR(255),
+  `match_time` INT,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`match_id`) 
+  REFERENCES `game`(`id`)
+    ON DELETE CASCADE,
+  FOREIGN KEY (`team_id`) 
+  REFERENCES `team`(`id`)
+    ON DELETE CASCADE
+);
+
+INSERT INTO team (code, name, coach) VALUES
+("POL", "Poland", "Franciszek Smuda"),
+("RUS", "Russia", "Dick Advocaat"),
+("CZE", "Czech Republic", "Michal Bilek"),
+("GRE", "Greece", "Fernando Santos");
+
+INSERT INTO game (id, match_date, stadium, team1, team2) VALUES
+(1001, "8 June 2012", "National Stadium, Warsaw", 1, 4),
+(1002, "8 June 2012", "Stadion Miejski (Wroclaw)", 2, 3),
+(1003, "12 June 2012", "Stadion Miejski (Wroclaw)", 4, 3),
+(1004, "12 June 2012", "National Stadium, Warsaw", 1, 2),
+(1005, "14 June 2012", "National Stadium, Warsaw", 2, 1);
+
+INSERT INTO goal (match_id, team_id, player, match_time) VALUES
+(1001, 1, "Robert Lewandowski", 17),
+(1001, 4, "Dimitris Salpingidis", 51),
+(1002, 2, "Alan Dzagoev", 15),
+(1004, 2, "Roman Pavlyuchenko", 82),
+(1005, 2, "Roman Pavlyuchenko", 81);
+
+
+/* 1 */ 
+
+SELECT
+  match_id, player
+FROM
+  goal
+WHERE
+  goal.team_id 
+    IN (SELECT id FROM team WHERE team.name = "Russia")
+ORDER BY
+  match_id ASC;
+
+/* 2 */   
+  
+SELECT
+  goal.player, goal.team_id, game.stadium, game.match_date
+FROM
+  goal
+  INNER JOIN game 
+    ON game.id = goal.match_id
+WHERE
+  goal.team_id 
+    IN (SELECT id FROM team WHERE team.name = "Russia")
+ORDER BY
+  goal.team_id ASC;
+
+/* 3 */ 
+  
+SELECT
+  name
+FROM
+  team
+WHERE
+  team.id 
+    IN (SELECT team_id FROM goal WHERE goal.player LIKE "Alan%")
+ORDER BY
+  name ASC;	
+  
+/* 4 */ 
+  
+SELECT
+  goal.player, goal.team_id, goal.match_time, team.coach
+FROM
+  goal
+  INNER JOIN team 
+    ON team.id = goal.team_id
+WHERE
+  goal.match_time < 52
+ORDER BY
+  goal.team_id ASC;	
+
+/* 5 */ 
+
+  SELECT
+    game.match_date, team.name
+  FROM
+    game
+    INNER JOIN team 
+      ON team.id = game.team1	
+  WHERE
+    team.coach = "Fernando Santos"
+UNION DISTINCT	
+  SELECT
+    game.match_date, team.name
+  FROM
+    game
+    INNER JOIN team 
+      ON team.id = game.team2	
+  WHERE
+    team.coach = "Fernando Santos"
+ORDER BY
+  match_date DESC;
+
+/* 6 */   
+  
+  SELECT
+    goal.player
+  FROM
+    goal
+    INNER JOIN game 
+      ON game.team1 = goal.team_id	
+  WHERE
+    game.stadium = "National Stadium, Warsaw"
+UNION DISTINCT	
+  SELECT
+    goal.player
+  FROM
+    goal
+    INNER JOIN game 
+      ON game.team2 = goal.team_id	
+  WHERE
+    game.stadium = "National Stadium, Warsaw"
+ORDER BY
+  player ASC;
+ 
+/* 7 */ 
+  
+  SELECT
+    goal.player	
+  FROM
+    goal 
+    INNER JOIN game 
+      ON game.team1 = goal.team_id
+  WHERE
+    game.team2 = (SELECT id FROM team WHERE team.name = "Poland")
+UNION DISTINCT
+  SELECT
+    goal.player	
+  FROM
+    goal      
+    INNER JOIN game 
+      ON game.team2 = goal.team_id	
+  WHERE
+    game.team1 = (SELECT id FROM team WHERE team.name = "Poland");
+		
+/* 8 */
+ 
+  SELECT
+    team.name,
+	COUNT(goal.match_id)
+  FROM
+    team
+    LEFT JOIN goal ON team.id = goal.team_id
+  GROUP BY team.id;
+  
+/* 9 */
+
+  SELECT
+    game.stadium,
+    COUNT(match_id)	
+  FROM
+    game
+    INNER JOIN goal ON game.id = goal.match_id
+  GROUP BY game.id;
+  
+/* 10 */
+
+  SELECT
+    team.name,
+	group_concat(IFNULL(goal.player, ''))
+  FROM
+    team
+    LEFT JOIN goal ON team.id = goal.team_id
+  GROUP BY team.id;
+  
+/* 11 */
+	
+
+  SELECT
+	game.match_date,
+    team.name,
+	SUM( CASE WHEN goal.team_id = (SELECT team.id FROM team WHERE team.name = "Poland") THEN 2 WHEN goal.team_id != (SELECT team.id FROM team WHERE team.name = "Poland") THEN -1 ELSE 0 END ) as count
+  FROM
+    game 	
+	INNER JOIN team ON game.team1 = team.id
+	INNER JOIN goal ON game.id = goal.match_id
+  WHERE
+    game.id = goal.match_id
+	AND game.team2 = (SELECT team.id FROM team WHERE team.name = "Poland")	
+UNION DISTINCT
+  SELECT
+	game.match_date,
+    team.name,
+	SUM( CASE WHEN goal.team_id = (SELECT team.id FROM team WHERE team.name = "Poland") THEN 2 WHEN goal.team_id != (SELECT team.id FROM team WHERE team.name = "Poland") THEN -1 ELSE 0 END ) as count
+  FROM
+    game 	
+	INNER JOIN team ON game.team2 = team.id
+	INNER JOIN goal ON game.id = goal.match_id
+  WHERE
+    game.id = goal.match_id
+	AND game.team1 = (SELECT team.id FROM team WHERE team.name = "Poland")
+GROUP BY game.id asc;
+
+
+
+
+
+
+
+
+
