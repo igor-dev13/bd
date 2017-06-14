@@ -1,0 +1,341 @@
+DROP DATABASE apartment;
+
+CREATE DATABASE apartment;
+
+use apartment;
+SET @@global.sql_mode= '';
+
+CREATE TABLE `apartment_management`
+(
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `district` VARCHAR(255),
+  `address` VARCHAR(255),
+  `name` VARCHAR(255),
+  PRIMARY KEY (`id`)
+);
+
+CREATE TABLE `apartment`
+(
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `apartment_management_id` INT,
+  `fio` VARCHAR(255),
+  `square` INT,
+  `number_of_residence` INT,
+  `address` VARCHAR(255),  
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`apartment_management_id`) 
+  REFERENCES `apartment_management`(`id`)
+    ON DELETE CASCADE
+);
+
+CREATE TABLE `bill`
+(
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `apartment_id` INT,
+  `date` DATE,
+  `amount` INT,
+  `is_payed` BOOLEAN,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`apartment_id`) 
+  REFERENCES `apartment`(`id`)
+    ON DELETE CASCADE
+);
+
+CREATE TABLE `debt`
+(
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `apartment_id` INT,
+  `amount` INT,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`apartment_id`) 
+  REFERENCES `apartment`(`id`)
+    ON DELETE CASCADE
+);
+
+CREATE TABLE `master`
+(
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `fio` VARCHAR(255),
+  `work_experience` INT,
+  PRIMARY KEY (`id`)
+);
+
+CREATE TABLE `service`
+(
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(255),
+  `master_id` INT,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`master_id`) 
+  REFERENCES `master`(`id`)
+    ON DELETE CASCADE
+);
+
+CREATE TABLE `service_tarif`
+(
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `service_id` INT,
+  `base_rate` INT,
+  `counter_rate` INT,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`service_id`) 
+  REFERENCES `service`(`id`)
+    ON DELETE CASCADE
+);
+
+CREATE TABLE `counter`
+(
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `service_tarif_id` INT,
+  `apartment_id` INT,
+  `value` INT,
+  `date` DATE,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`service_tarif_id`) 
+  REFERENCES `service_tarif`(`id`)
+    ON DELETE CASCADE,
+  FOREIGN KEY (`apartment_id`) 
+  REFERENCES `apartment`(`id`)
+    ON DELETE CASCADE
+);
+
+CREATE TABLE `user`
+(
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `login` VARCHAR(255) NOT NULL,
+  `password` VARCHAR(32) NOT NULL,
+  PRIMARY KEY (`id`)
+);
+
+INSERT INTO user (login, password) VALUES
+("login", MD5('password'));
+
+INSERT INTO apartment_management (district, address, name) VALUES
+("Девятый микрорайон", "Анникова 17", "ТСЖ Ромашка"),
+("Девятый микрорайон", "Прохорова 50", "ТСЖ Зоря"),
+("Микрорайон сомбатхей", "Петрова 2а", "ТСЖ Развитие"),
+("Звездный", "Зеленая 7", "Домуправление Содружество"),
+("Центр", "Ленинский проспект 18", "Домуправление n2"),
+("Микрорайон ремзавод", "Зеленая 3", "ТСЖ Ремонтный");
+
+INSERT INTO apartment (apartment_management_id, fio, square, number_of_residence, address) VALUES
+(1, "Зубов А.И.", 36, 2, "Анникова 2-39"),
+(1, "Лужков П.С.", 54, 1, "Буамана 81-39"),
+(2, "Сергеев А.Г.", 28, 1, "Прохорова 29-18"),
+(3, "Белоусова С.Г.", 81, 4, "Заводская 57-30"),
+(4, "Петров Р.В.", 72, 3, "Репина 43-32"),
+(5, "Афанасьев Г.В.", 62, 2, "Зарубина 7-29"),
+(6, "Филатов А.Р.", 55, 2, "Строителей 75-40"),
+(1, "Бобров А.С.", 58, 3, "Ленинский 15-30");
+
+INSERT INTO bill (apartment_id, date, amount, is_payed) VALUES
+(1, "2017-01-00", 3650, TRUE),
+(2, "2017-02-00", 4650, FALSE),
+(3, "2017-01-00", 1650, TRUE),
+(4, "2017-02-00", 5550, FALSE),
+(3, "2017-01-00", 3900, TRUE),
+(4, "2017-01-00", 3710, TRUE),
+(4, "2017-01-00", 2150, FALSE),
+(6, "2017-01-00", 4740, FALSE),
+(7, "2017-01-00", 3740, FALSE);
+
+INSERT INTO debt (apartment_id, amount) VALUES
+(1, 1200),
+(2, 0),
+(3, 0),
+(4, 5400),
+(5, 18000),
+(6, 0),
+(7, 0),
+(8, 300);
+
+INSERT INTO master (fio, work_experience) VALUES
+("Иванов И.С.", 5),
+("Сидоров А.А.", 1),
+("Пуртов Б.Е.", 4),
+("Петров П.В.", 14),
+("Книзев А.С.", 12),
+("Куделин Н.А.", 3),
+("Кузнецов А.А.", 2);
+
+INSERT INTO service (name, master_id) VALUES
+("Горячая вода", 1),
+("Холодная вода", 2),
+("Вывоз мусора", 3),
+("Уборка двора", 4),
+("Ремонт кровли", 5),
+("Ремонт электрики", 6),
+("Электричество", 7);
+
+INSERT INTO service_tarif (service_id, base_rate, counter_rate) VALUES
+(1, 900, 80),
+(2, 400, 45),
+(3, 200, 0),
+(4, 200, 0),
+(5, 2900, 0),
+(6, 2400, 0),
+(7, 3, 2);
+
+INSERT INTO counter (service_tarif_id, apartment_id, value, date) VALUES
+(1, 1, 29, "2013-02-00"),
+(7, 1, 50, "2013-02-00"),
+(2, 1, 19, "2013-02-00"),
+(7, 2, 81, "2013-02-00"),
+(1, 2, 154, "2013-02-00"),
+(7, 3, 450, "2013-02-00"),
+(2, 2, 124, "2013-02-00"),
+(1, 3, 180, "2013-02-00"),
+(2, 3, 165, "2013-02-00"),
+(1, 4, 272, "2013-02-00"),
+(2, 4, 194, "2013-02-00"),
+(1, 5, 381, "2013-02-00"),
+(2, 5, 247, "2013-02-00"),
+(2, 4, 230, "2013-02-00"),
+(7, 5, 550, "2013-02-00"),
+(7, 5, 780, "2013-03-00"),
+(7, 5, 1109, "2013-04-00");
+
+
+/* source file_name
+	2 часть
+*/
+
+INSERT INTO debt (apartment_id, amount)
+SELECT apartment_id, amount
+FROM   bill
+WHERE  bill.id = 3;
+
+INSERT INTO master (fio, work_experience)
+SELECT fio, 6
+FROM   apartment
+WHERE  apartment.id = 7;
+
+
+SELECT
+  SUM(amount)
+FROM
+  debt;
+
+SELECT
+  fio, work_experience
+FROM
+  master
+WHERE
+  master.id = 3;
+
+
+
+DELETE FROM
+  apartment
+WHERE
+  number_of_residence = 2 AND
+  square > 50;
+
+DELETE FROM
+  bill
+WHERE
+  apartment_id = 3 AND
+  amount > 1700;
+
+
+UPDATE
+  counter
+SET
+  value = 195
+WHERE
+  counter.id = 9 AND
+  apartment_id = 1;
+
+UPDATE
+  apartment_management
+SET
+  name = "ТСЖ Заречный"
+WHERE
+  address = "Прохорова 50" AND
+  district = "Девятый микрорайон";
+
+
+  SELECT
+    value, date
+  FROM
+    counter
+  WHERE
+    service_tarif_id = 1
+UNION ALL
+  SELECT
+    counter_rate, service_id
+  FROM
+    service_tarif
+  WHERE
+    service_tarif.id = 1;
+
+  SELECT
+    id, name
+  FROM
+    service
+  WHERE
+    master_id = 1
+UNION DISTINCT
+  SELECT
+    fio, work_experience
+  FROM
+    master
+  WHERE
+    master.id = 1;
+
+/* PART 2 */
+
+/* 1. Имена всех мастеров котор обслуж. квартиры в жеке с адресом гомзово. */
+
+  SELECT DISTINCT
+    master.fio
+  FROM
+    apartment
+	INNER JOIN apartment_management
+	  ON apartment_management.id = apartment.apartment_management_id
+	INNER JOIN counter
+	  ON counter.apartment_id = apartment.id
+	INNER JOIN service_tarif
+	  ON service_tarif.id = counter.service_tarif_id
+	INNER JOIN service
+	  ON service.id = service_tarif.service_id
+	INNER JOIN master
+	  ON master.id = service.master_id
+  WHERE
+    apartment_management.district = "Девятый микрорайон";
+
+/* 2. Вывести фио всех владельцов квартир у котор долг выше чем 1000 руб. и у котор. счетчик
+в 2013 году за электричество превысил значение 1000 */
+
+SELECT
+  DISTINCT fio
+FROM
+  apartment
+  INNER JOIN debt
+    ON debt.apartment_id = apartment.id
+  INNER JOIN counter
+    ON counter.apartment_id = apartment.id
+  INNER JOIN service_tarif
+    ON service_tarif.id = counter.service_tarif_id
+  INNER JOIN service
+    ON service.id = service_tarif.service_id
+  WHERE
+    debt.amount > 1000
+	  AND service.name = "Электричество"
+	  AND counter.date < "2013-05-00"
+      AND counter.value > 1000;
+
+/* 3. ДЛя каждого ТСЖ найти количество квартир у которых есть долг. > 0 */
+
+SELECT
+  apartment_management.name,
+  COUNT(apartment.id)
+FROM
+  apartment
+  INNER JOIN apartment_management
+    ON apartment_management.id = apartment.apartment_management_id
+  INNER JOIN debt
+    ON debt.apartment_id = apartment.id
+WHERE
+  debt.amount > 0
+GROUP BY apartment_management.id;
